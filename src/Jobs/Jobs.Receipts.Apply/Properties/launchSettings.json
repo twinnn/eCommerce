@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Jobs.Receipts.Apply": {
+      "commandName": "Project",
+      "commandLineArgs": "status",
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

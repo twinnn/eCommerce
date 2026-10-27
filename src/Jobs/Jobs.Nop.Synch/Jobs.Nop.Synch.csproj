@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>bfd5d459-4dd2-4522-89e8-13fd856359d9</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Mappers\DtoToNopStockMapper.cs~RF2b1c76f.TMP" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Nop\Nop.ApiConsumer\Nop.ApiConsumer.csproj" />
+    <ProjectReference Include="..\..\Nop\Nop.Contract\Nop.Contract.csproj" />
+    <ProjectReference Include="..\..\Pohoda\Pohoda.Contract\Pohoda.Contract.csproj" />
+    <ProjectReference Include="..\..\Pohoda\Pohoda.Server\Pohoda.Server.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Helpers\" />
+  </ItemGroup>
+
+</Project>

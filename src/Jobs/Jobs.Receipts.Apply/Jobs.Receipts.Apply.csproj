@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>1ebbbae7-e4c1-40b3-ac21-888d9fb94fad</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Pohoda\Pohoda.Contract\Pohoda.Contract.csproj" />
+    <ProjectReference Include="..\..\Pohoda\Pohoda.MServer\Pohoda.MServer.csproj" />
+    <ProjectReference Include="..\..\Pohoda\Pohoda.Server\Pohoda.Server.csproj" />
+    <ProjectReference Include="..\..\Receipts\Receipts.Contract\Receipts.Contract.csproj" />
+    <ProjectReference Include="..\..\Receipts\Receipts.Core\Receipts.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
