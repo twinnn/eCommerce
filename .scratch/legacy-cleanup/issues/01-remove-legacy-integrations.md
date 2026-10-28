@@ -1,6 +1,6 @@
 # Remove legacy integrations and rename the Pohoda instance key to AcEcom
 
-Status: ready-for-agent
+Status: done
 
 ## Why
 
@@ -29,3 +29,9 @@ The solution is being refocused on AI Agents for the Distributor (AcEcom s.r.o.,
 ## Heads-up for production
 
 The renamed key changes the secret names: `Pohoda__GoNoow__Username`/`Pohoda__GoNoow__Password` become `Pohoda__AcEcom__Username`/`Pohoda__AcEcom__Password`, and User Secrets need re-setting under `Pohoda:AcEcom:*`. Say so in the commit message.
+
+## Comments
+
+**Done** in commit fd00a9b on branch `cleanup/legacy-integrations`. Build is clean and 120/120 tests pass. Code review (Standards + Spec) found no hard violations and no missing requirements. Follow-ups:
+- `README.md` still documents the removed projects and the old `Pohoda:GoNoow:*` secret names, so its operator instructions are wrong until ticket 02 lands.
+- Judgement call: `PohodaInstance` (key + doc comment) and the mServer-unavailable log message are duplicated across Jobs.Receipts.Scan and Jobs.Receipts.Apply (that duplication predates this ticket); a shared home would make the next rename a single edit.
