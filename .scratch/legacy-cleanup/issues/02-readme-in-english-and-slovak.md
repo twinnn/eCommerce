@@ -1,6 +1,6 @@
 # Rewrite the README in English with a Slovak translation
 
-Status: ready-for-agent
+Status: done
 Blocked by: 01
 
 ## Why
@@ -17,3 +17,10 @@ Code and docs are in English because the system may later be offered to other bu
 ## Done when
 
 Both files describe the same content, every path and command in them exists, and nothing mentions Expando, nopCommerce, Wiky or Hrackys.
+
+## Comments
+
+**Done** in commit 660b765 on branch `cleanup/legacy-integrations`. Build is clean and 120/120 tests pass (docs-only change). Every path, command and config key in both files was checked against the repo, and neither file mentions Expando, nopCommerce, Wiky or Hrackys. Fixes from code review (Standards + Spec):
+- `reset` is described correctly: it also moves the PDF from `Watch:ArchiveFolder` back to the inbox.
+- Bare "invoice"/"faktúra" became Supplier Invoice/prijatá faktúra where the glossary term is meant.
+- Not taken: trimming README.sk.md to a partial translation to avoid duplication. The ticket asks for a faithful full translation, so every README change now needs a matching edit in both files.
