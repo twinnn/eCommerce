@@ -89,7 +89,7 @@ public sealed class Worker : BackgroundService
         if (!availability.IsAvailable)
         {
             _logger.LogError(
-                "mServer '{Instance}' nie je dostupný a automatický štart zlyhal. Skontroluj, či beží (Pohoda E1 → Databáze → POHODA mServer) a či je v appsettings.json nastavená správna 'Pohoda:{Instance}:PohodaExePath'.",
+                "mServer pre Pohoda inštanciu '{Instance}' nie je dostupný a automatický štart zlyhal. Skontroluj, či beží (Pohoda E1 → Databáze → POHODA mServer) a či je v appsettings.json nastavená správna 'Pohoda:{Instance}:PohodaExePath'.",
                 PohodaInstance.Key, PohodaInstance.Key);
             return;
         }

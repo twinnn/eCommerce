@@ -1,6 +1,6 @@
 namespace Pohoda.MServer;
 
-/// <summary>Connection settings for one Pohoda mServer instance (e.g. "StwTest" or "GoNoow").</summary>
+/// <summary>Connection settings for one Pohoda mServer instance (e.g. "AcEcom").</summary>
 public sealed class MServerConfiguration
 {
     public const string SectionName = "Pohoda";

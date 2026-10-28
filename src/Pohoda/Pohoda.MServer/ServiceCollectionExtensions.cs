@@ -14,7 +14,7 @@ public static class ServiceCollectionExtensions
     /// <see cref="MServerConfiguration"/> (from config section <c>Pohoda:&lt;instanceKey&gt;</c>), a
     /// named <see cref="HttpClient"/> (base address + STW-Authorization header), and keyed
     /// <see cref="MServerClient"/>/<see cref="MServerLauncher"/> singletons. Call once per mServer
-    /// instance eCommerce needs to talk to (e.g. "StwTest" for the existing Jobs, "GoNoow" for Receipts)
+    /// instance eCommerce needs to talk to (e.g. "AcEcom", the Distributor's Pohoda)
     /// — each instance is independently resolvable via keyed DI.
     /// </summary>
     public static IServiceCollection AddPohodaMServer(
