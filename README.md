@@ -1,31 +1,43 @@
-# eCommerce – integračný middleware
+English | [Slovensky](README.sk.md)
 
-## Účel projektu
+# eCommerce – AI Agents for the Gabel distribution
 
-Toto riešenie **nie je samotný e-shop**, ale sada .NET worker services a konzolových aplikácií, ktoré prepájajú a synchronizujú dáta medzi backendovými systémami internetového obchodu:
+## Purpose
 
-- **Pohoda** (STORMWARE) – účtovný a skladový ERP systém, zdroj pravdy pre sklad, ceny, kategórie a objednávky. Komunikácia prebieha cez lokálny HTTP/XML server **mServer**.
-- **nopCommerce** – samotná e-shop platforma (vitrína), do ktorej sa cez jej Web API synchronizujú produkty, kategórie a špecifikačné atribúty.
-- **Expando** – platforma na správu objednávok/dropshipping, odkiaľ sa objednávky sťahujú a zapisujú do Pohody.
-- **XML feedy dodávateľov** (Wiky, Hrackys) – externé produktové feedy veľkoobchodných partnerov, importované do katalógu.
-- **Packeta** – prepravca; v konfigurácii existujú prístupové údaje, ale samostatný klient/služba zatiaľ nie je implementovaná.
+This solution holds the AI Agents that support AcEcom s.r.o., the **Distributor** holding the exclusive distribution of Gabel poles in Slovakia and the Czech Republic. Each **Agent** owns one business process: it reads freely from the Distributor's systems and changes them only through **Proposals** that a person approves, until a person grants it autonomy for a given action type.
 
-Zjednodušene: **dodávateľské feedy → Pohoda (ERP) → nopCommerce (e-shop)**, a súbežne **Expando objednávky → Pohoda**.
+The working parts today are:
 
-## Technológie
+- **Receipts** – turns a **Supplier Invoice** PDF from Gabel into a Proposal for a stock **Receipt** in Pohoda, and writes it to Pohoda only after a person has reviewed and applied it.
+- **The Pohoda mServer client** – the shared, low-level client through which Agents read and write Pohoda (STORMWARE), the Distributor's accounting and stock ERP.
 
-- **.NET** – riešenie `src/eCommerce.sln` (Visual Studio alebo `dotnet` CLI), 29 projektov (vrátane 6 testovacích), všetky na **.NET 10.0**.
-- **Logovanie**: predvolené `Microsoft.Extensions.Logging` providery z `Host.CreateDefaultBuilder` (Console/Debug) — `Serilog` balíček nie je v riešení referencovaný. Tri `appsettings.json` súbory (`Jobs.Nop.Synch`, `Jobs.Expando.Orders`, `Import.Wiky`) obsahujú nepoužívaný blok `Serilog`, ktorý sa v kóde nikde nečíta.
-- **Komunikácia**: `HttpClient`, vlastné XML parsovanie (streamovacie čítanie veľkých feedov), JSON serializácia.
-- **Dátová vrstva**: bez EF Core/DbContext – ide o bezstavový integračný middleware; niektoré projekty používajú jednoduché súborové úložisko stavu (napr. `lastId.txt`) alebo pripravené (nie plne zapojené) embedded úložisko.
-- **CI**: Azure Pipelines (`CI/azure-pipelines.yml`) – NuGet restore → VSBuild → VSTest.
+**Go-Noow**, the Distributor's own e-shop, is not part of this solution; NextCom builds it and synchronizes it with Pohoda.
 
-## Štruktúra riešenia
+Domain vocabulary is defined in [GLOSSARY.md](GLOSSARY.md), and architectural decisions are recorded in [docs/adr/](docs/adr/):
+
+- [0001 – Agents integrate with Pohoda through mServer, not NextCom customizations](docs/adr/0001-agents-integrate-with-pohoda-via-mserver.md)
+- [0002 – Agents act through Proposals, with autonomy granted per action type](docs/adr/0002-agents-act-through-proposals-with-per-action-autonomy.md)
+
+Code and documentation are in English so the system can later be offered to other businesses; this README also has a Slovak translation, [README.sk.md](README.sk.md), for the Distributor's team. Operator-facing output (log messages, the command-line help of `Jobs.Receipts.Apply`, the Markdown previews) is in Slovak.
+
+## Technology
+
+- **.NET 10.0** – solution `src/eCommerce.sln` (Visual Studio or the `dotnet` CLI), 18 projects including 6 test projects (xUnit).
+- **Pohoda integration** – HTTP/XML against the local POHODA **mServer** (Windows-1250 encoding), with mServer started and stopped on demand through `pohoda.exe /http start|stop`.
+- **PDF parsing** – PdfPig, wrapped by `Common.Documents.PdfReader`.
+- **Local state** – SQLite (processed files, audit log, stock-code mapping cache, Proposals).
+- **Logging** – the default `Microsoft.Extensions.Logging` providers of the .NET generic host.
+- **CI** – Azure Pipelines (`CI/azure-pipelines.yml`).
+
+## Solution structure
 
 ```
 eCommerce/
 ├── CI/
 │   └── azure-pipelines.yml
+├── docs/
+│   └── adr/
+├── GLOSSARY.md
 └── src/
     ├── eCommerce.sln
     ├── Common/
@@ -34,138 +46,123 @@ eCommerce/
     │   ├── Data/
     │   │   ├── Common.Data.Sqlite/
     │   │   └── Common.Data.Sqlite.Tests/
-    │   ├── Documents/
-    │   │   ├── Common.Documents.PdfReader/
-    │   │   └── Common.Documents.PdfReader.Tests/
-    │   ├── Email/Common.Email.EmailService/
-    │   └── Readers/
-    │       ├── Common.Readers.BaseApiConsumer/
-    │       └── Common.Readers.XmlReader/
-    ├── Expando/
-    │   ├── Expando.Contract/
-    │   └── Expando.Connector/
-    ├── Imports/
-    │   ├── Import.Hrackys/
-    │   └── Import.Wiky/
+    │   └── Documents/
+    │       ├── Common.Documents.PdfReader/
+    │       └── Common.Documents.PdfReader.Tests/
     ├── Jobs/
-    │   ├── Jobs.Expando.Orders/
-    │   ├── Jobs.Nop.Synch/
     │   ├── Jobs.Receipts.Apply/
     │   ├── Jobs.Receipts.Scan/
     │   └── Jobs.Receipts.Tests/
-    ├── Nop/
-    │   ├── Nop.Contract/
-    │   └── Nop.ApiConsumer/
-    ├── Receipts/
-    │   ├── Receipts.Contract/
-    │   ├── Receipts.Core/
-    │   ├── Receipts.Gabel/
-    │   └── Receipts.Tests/
-    └── Pohoda/
-        ├── Pohoda.Contract/
-        ├── Pohoda.MServer/
-        ├── Pohoda.MServer.Tests/
-        ├── Pohoda.Server/
-        └── Pohoda.Server.Tests/
+    ├── Pohoda/
+    │   ├── Pohoda.Contract/
+    │   ├── Pohoda.MServer/
+    │   ├── Pohoda.MServer.Tests/
+    │   ├── Pohoda.Server/
+    │   └── Pohoda.Server.Tests/
+    └── Receipts/
+        ├── Receipts.Contract/
+        ├── Receipts.Core/
+        ├── Receipts.Gabel/
+        └── Receipts.Tests/
 ```
 
-## Moduly a ich funkcionalita
+## Modules
 
-### Common – zdieľané knižnice
+### Common – shared libraries
 
-- **Common.Contract** – spoločné DTO a kontrakty používané naprieč projektmi: `StockDTO`, `OrderDTO`/`OrderItemDTO`, `PohodaCategoryDto`, `PohodaParameterDto`, generický `IBuilder<TIn,TOut>`/`IOrderBuilder`, XML serializer a LINQ pomocné rozšírenia.
-- **Common.Caching** – jednoduchý signál pre invalidáciu cache (`CacheSignal`).
-- **Common.Data.Sqlite** – znovupoužiteľný bootstrap SQLite databázy (`SqliteDatabase.OpenAsync` otvorí pripojenie a vykoná zadané schema DDL príkazy) a dve doménovo neviazané tabuľky nad ním: `ProcessedFileTracker` (SHA-256 idempotencia – či už bol daný súbor spracovaný) a `AuditLog` (append-only chronologický audit log).
-- **Common.Documents.PdfReader** – statická trieda `PdfRowReader` (nad PdfPig), ktorá rekonštruuje text PDF dokumentu ako vizuálne riadky zhlukovaním slov podľa ich bounding boxu – spoľahlivejšie než poradie textu v raw content streame pri jednoduchých jednostĺpcových tabuľkách (napr. riadky faktúry).
-- **Common.Email.EmailService** – rozhranie `IEmailService` (konkrétna implementácia odosielania e-mailov v repozitári zatiaľ chýba, aj keď SMTP konfigurácia existuje).
-- **Common.Readers.BaseApiConsumer** – generický, znovupoužiteľný REST klient (`Get/Post/Put/Delete`), základ pre komunikáciu s nopCommerce API.
-- **Common.Readers.XmlReader** – generický asynchrónny streamovací čítač XML uzlov, používaný na spracovanie veľkých produktových/objednávkových feedov bez načítania celého súboru do pamäte.
+- **Common.Contract** – shared DTOs and helpers used by the Pohoda agenda services: `StockDTO`, `OrderDTO`/`OrderItemDTO`, `PohodaCategoryDto`, `PohodaParameterDto`, the generic `IBuilder<D, T>` contract, an XML serializer (`Utf8Serializer`) and LINQ extensions.
+- **Common.Caching** – a simple cache-invalidation signal (`CacheSignal`).
+- **Common.Data.Sqlite** – reusable SQLite bootstrap (`SqliteDatabase.OpenAsync` opens a connection and runs the given schema DDL) and two domain-agnostic tables on top of it: `ProcessedFileTracker` (SHA-256 idempotency: has this file already been processed?) and `AuditLog` (an append-only chronological audit log).
+- **Common.Documents.PdfReader** – the static `PdfRowReader` class (over PdfPig), which rebuilds a PDF's text as visual rows by clustering words by their bounding boxes. This is more reliable than the raw content-stream order for simple single-column tables such as the lines of a Supplier Invoice.
 
-### Expando – integrácia objednávkovej platformy
+### Pohoda – the ERP integration
 
-- **Expando.Contract** – POCO modely objednávok a kontrakty služieb.
-- **Expando.Connector** – klient sťahujúci objednávky z Expando XML feedu (konfigurovateľné URL, prístupový token, počet dní spätne).
+- **Pohoda.Contract** – service interfaces: `IReceiptService` (the Receipt agenda: list, create, update), `IStockCardService` (find a stock card by supplier code, search by part of its name, create a card; a transitional interface that will merge into `IStockService` when `Pohoda.Server` moves onto `Pohoda.MServer`), and the older `ICategoryService`, `IOrderService`, `IParameterService` and `IStockService`. It also holds the abstract `AbstractOrderBuilder`, the models `ExistingReceipt`, `ReceiptLineToWrite` and `StockNameMatch`, and the official mServer XSD schemas (Order, Stock, Filter, …).
+- **Pohoda.MServer** – the shared low-level POHODA mServer client, independent of `Pohoda.Server`: `MServerClient` (HTTP through `IHttpClientFactory`, Windows-1250 encoding, parsing of the `state`/`error` response), `MServerLauncher` (starts and stops `pohoda.exe /http start|stop` directly through `ProcessStartInfo.ArgumentList`, without `cmd.exe`) and `ServiceCollectionExtensions.AddPohodaMServer`, which registers several mServer instances side by side through keyed DI (config section `Pohoda:<instanceKey>:*`).
+- **Pohoda.Server** – the Pohoda agenda services. `ReceiptService` and `StockCardService` (implementing `IReceiptService`/`IStockCardService`) talk through the shared `Pohoda.MServer.MServerClient` and the `Pohoda.Server.Xml.DataPackBuilder` XML envelope, and are registered per instance by `AddPohodaAgendaServices`. The older services (`StockService`, `CategoryService`, `OrderService`, `ParameterService`, with their `Storages` and `Mappers`) still use the original `MServer/MServer.cs` and are not used by any executable today.
+- **Pohoda.MServer.Tests**, **Pohoda.Server.Tests** – xUnit tests. The `Pohoda.Server.Tests` suite runs `ReceiptService` and `StockCardService` against a fake mServer (`FakeMServer`) and checks the exact shape of the XML requests (element namespaces of `requestPrijemka`/`requestStock`, limit/count, the doubly nested `stockItem`, `prijemkaAccessoryChargesItem` for freight) and the parsing of the responses.
 
-### Imports – import dodávateľských produktových feedov
+### Receipts – stock Receipts from Supplier Invoices
 
-- **Import.Hrackys** – konzolová aplikácia streamujúca XML produktový feed dodávateľa Hrackys.cz (aktuálne skôr vo fáze PoC/základného importu).
-- **Import.Wiky** – .NET 10 worker service pre import XML feedu veľkoobchodu Wiky.sk vrátane kontroly/vytvárania kategórií v Pohode; obsahuje aj dátový model pre sledovanie balíkov/zásielok (Pohoda order ID, tracking číslo, dopravca, štítok) pre budúcu prepravnú integráciu (časť logiky je aktuálne zakomentovaná/nedokončená).
+Ported from the standalone `Gabel.PrijemkaSync` solution. Line items are extracted from a Supplier Invoice PDF and turned into a Proposal for a Receipt in Pohoda. The Proposal is stored locally (SQLite) and written out as a Markdown preview for approval; writing to Pohoda is a separate, explicitly run step. The executables are `Jobs.Receipts.Scan` and `Jobs.Receipts.Apply` (see [Receipts flow: Scan → Apply](#receipts-flow-scan--apply)).
 
-### Jobs – synchronizačné úlohy
+- **Receipts.Contract** – domain models (`ParsedInvoice`, `InvoiceLine`, `ReceiptProposal`, `ReceiptLineProposal`) and the two interfaces a Supplier plugin implements: `IInvoiceParser` (PDF → `ParsedInvoice`) and `IVariantDetector` (recognizes a size variant in a product name).
+- **Receipts.Core** – Supplier-agnostic logic: `ProposalBuilder` (matches the Supplier Invoice to an existing Receipt by looking for its invoice number in the Receipt text, tells existing stock cards from new ones, suggests a master card for variants), `ProposalApplier` (the only code that writes to Pohoda: creates missing stock cards and creates or extends the Receipt; freight always goes in as an accessory charge), `PreviewWriter` (the Markdown preview) and `ReceiptsStateStore` (SQLite state over `Common.Data.Sqlite`: processed files, audit log, stock-code mapping cache, stored Proposals). It depends only on `Receipts.Contract`, `Pohoda.Contract` and `Common.Data.Sqlite`.
+- **Receipts.Gabel** – the first Supplier plugin: `GabelInvoiceParser` (a deterministic regex parser of final Supplier Invoices `FT n/nnnnnn` over `Common.Documents.PdfReader`; pro forma invoices are skipped, since they are not Supplier Invoices) and `GabelVariantDetector` (patterns `CM.120` / `135CM` / `Cm 115`; ranges such as `73-110CM` are not treated as a variant). Another Supplier means a new `Receipts.<Supplier>` project; `Receipts.Core` does not change.
+- **Receipts.Tests** – xUnit tests, including the parser tests over real PDF samples (`TestData/`), tests of `ProposalBuilder`/`ProposalApplier` with hand-written fakes of the Pohoda services, and tests of the SQLite state.
 
-- **Jobs.Expando.Orders** – worker service, ktorý sťahuje objednávky z Expanda, mapuje ich na spoločný `OrderDTO` a vytvára ich v Pohode.
-- **Jobs.Nop.Synch** – kľúčová synchronizačná úloha katalógu; postupne vytvára v nopCommerce špecifikačné atribúty, kategórie a produkty na základe dát z Pohody:
-  - `CategoryProcessor` – prechádza stromovú štruktúru kategórií v Pohode (filtrovanú whitelistom) a rekurzívne vytvára zodpovedajúce kategórie/podkategórie v nopCommerce (vrátane obrázkov a poradia zobrazenia).
-  - `AttributeProcessor` – mapuje parametre Pohody (s prefixom `GN:`) na špecifikačné atribúty nopCommerce.
-  - `ProductProcessor` – sťahuje skladové položky z Pohody, rozlišuje jednoduché a variantné/skupinové produkty, vytvára ich v nopCommerce vrátane obrázkov, priradenia kategórií a hodnôt špecifikačných atribútov.
-  - Mapovacie pomocné triedy (`DtoToNopStockMapper`, `DtoToNopCategory`, `DtoToNopAttributeMapper`, `ImageHelper`) prevádzajú DTO z Pohody na formát požadovaný nopCommerce API.
-- **Jobs.Receipts.Scan** – worker service, ktorý v nastavenom intervale (`Watch:ScanInterval`) prejde priečinok s PDF faktúrami dodávateľa, pre každú novú finálnu faktúru postaví návrh skladovej príjemky a zapíše čitateľný Markdown náhľad do priečinka na schválenie. Do Pohody **nezapisuje** – iba číta (zoznam príjemiek, vyhľadanie skladových kariet). Každý cyklus si v prípade potreby sám spustí mServer a po skončení ho zastaví, ak ho sám spustil.
-- **Jobs.Receipts.Apply** – konzolová aplikácia, ktorá po ľudskej kontrole náhľadu vykoná samotný zápis do Pohody. Je to **jediné miesto v celom riešení, ktoré zapisuje príjemky a zakladá skladové karty**, a spúšťa sa vždy ručne:
+### Jobs – executables
+
+- **Jobs.Receipts.Scan** – a worker service; see below.
+- **Jobs.Receipts.Apply** – a console application; see below.
+- **Jobs.Receipts.Tests** – xUnit tests of `ScanRunner`, `ApplyRunner` and the command-line parser.
+
+## Receipts flow: Scan → Apply
+
+1. **Scan** (`Jobs.Receipts.Scan`) runs continuously. Every `Watch:ScanInterval` it sweeps `Watch:InboxFolder` for Supplier Invoice PDFs. For each new final Supplier Invoice it builds a Proposal (either *create a new Receipt* or *append the missing lines to an existing Receipt*), stores it in the SQLite database at `Watch:DatabasePath`, and writes a readable Markdown preview into `Watch:PendingApprovalFolder`. Scan **never writes** to Pohoda; it only reads (the Receipt list, stock card lookups). Each cycle starts mServer if needed and stops it afterwards, but only if the cycle started it.
+2. **Review** – a person reads the preview and decides whether the Proposal is right.
+3. **Apply** (`Jobs.Receipts.Apply`) is run by hand after the review. It is **the only place in the solution that writes Receipts and creates stock cards in Pohoda**. After a successful write the PDF moves to `Watch:ArchiveFolder`. A Proposal whose write fails is marked `Failed` and the rest of the batch continues.
+
+```
+Jobs.Receipts.Apply.exe status            # pending and failed Proposals
+Jobs.Receipts.Apply.exe apply --id <id>   # write one approved Proposal
+Jobs.Receipts.Apply.exe apply --all       # write all pending Proposals
+Jobs.Receipts.Apply.exe reset --id <id>   # return a Proposal to PendingApproval and move its PDF back to the inbox (retry)
+```
+
+`status` and `reset` work only with the local SQLite database (`reset` also moves the PDF from `Watch:ArchiveFolder` back to `Watch:InboxFolder`) and do not need mServer.
+
+Both applications **must** use the same `Watch:DatabasePath` in their `appsettings.json`: Scan and Apply hand Proposals over through that SQLite database, so two different paths mean two independent databases and Apply never sees what Scan created. That is why both tracked configurations use the same absolute path rather than a relative one (which would resolve to two different files for two `.exe` files in two different `bin/` folders).
+
+### Before the first live `apply`
+
+Writing to Pohoda through the XML agenda (`create`/`update` of a Receipt, creating a stock card) **has never run live yet**, not even in the original solution. The first run is therefore a supervised step:
+
+1. Run it while someone who can see the state in Pohoda is present, ideally against a test accounting unit first.
+2. Always make the first write `apply --id <id>` for one specific Proposal, never `apply --all`.
+3. Test an `AppendLines` Proposal (extending an existing Receipt) first, on a document you can afford to lose. `UpdateAsync` sends the **full list of lines** (existing + new); if Pohoda appends lines instead of replacing them, every existing line is duplicated. This is the most important unverified property of the whole chain.
+4. `UpdateAsync` writes **today's date** into the header; check whether it overwrote the Receipt's original date and whether that matters.
+5. After the write, check in Pohoda the placement of the new stock card (`storage`) and its `orderName` for size variants. Linking a variant to its master card still has to be done by hand; the XML agenda has no field for it.
+6. Check that `rateVAT="none"` is the right token for VAT-exempt items.
+
+Points 3 to 6 are open questions carried over from the original solution, not new risks introduced by the move.
+
+## Build, test and run
+
+- **Build**: open `src/eCommerce.sln` in Visual Studio (with the .NET 10 SDK), or run `dotnet build src/eCommerce.sln`.
+- **Test**: `dotnet test src/eCommerce.sln`.
+- **Run**: both executables are configured through their own `appsettings.json` (sections `Pohoda:AcEcom`, `Watch`, `Matching`):
+
+  ```bash
+  dotnet run --project src/Jobs/Jobs.Receipts.Scan/Jobs.Receipts.Scan.csproj
+  dotnet run --project src/Jobs/Jobs.Receipts.Apply/Jobs.Receipts.Apply.csproj -- status
   ```
-  Jobs.Receipts.Apply.exe status            # čakajúce a zlyhané návrhy
-  Jobs.Receipts.Apply.exe apply --id <id>   # zápis jedného schváleného návrhu
-  Jobs.Receipts.Apply.exe apply --all       # zápis všetkých čakajúcich návrhov
-  Jobs.Receipts.Apply.exe reset --id <id>   # návrat návrhu na PendingApproval (opakovaný pokus)
-  ```
-  Príkazy `status` a `reset` pracujú len s lokálnou SQLite databázou a mServer nepotrebujú.
 
-  Obe aplikácie **musia** mať v `appsettings.json` nastavené rovnaké `Watch:DatabasePath` — cez túto SQLite databázu si `scan` a `apply` odovzdávajú návrhy, takže dve rôzne cesty znamenajú dve nezávislé databázy a `apply` nikdy neuvidí, čo `scan` vytvoril. Preto obe trackované konfigurácie používajú rovnakú absolútnu cestu namiesto pôvodnej relatívnej (tá by sa pri dvoch samostatných `.exe` v rôznych priečinkoch bin/ vyriešila na dva rôzne súbory). Skompilovaný `.exe` spustený mimo Visual Studia navyše nenačíta User Secrets (tie sa načítajú iba v prostredí `Development` — viď sekciu Konfigurácia citlivých údajov nižšie), takže v produkcii treba `Pohoda:GoNoow:Username`/`Pohoda:GoNoow:Password` nastaviť ako environment variables `Pohoda__GoNoow__Username` a `Pohoda__GoNoow__Password`.
+  In production, run the built `Jobs.Receipts.Scan.exe` as a long-running process and `Jobs.Receipts.Apply.exe` by hand. There is no orchestration script or docker-compose in the repository.
 
-### Nop – integrácia s nopCommerce
+## CI
 
-- **Nop.Contract** – POCO modely (`NopCategory`, `NopStock`, `NopSpecificationAttribute`) a rozhrania služieb pre komunikáciu s nopCommerce.
-- **Nop.ApiConsumer** – implementácia klienta nad nopCommerce Web API pluginom: vytváranie/aktualizácia/mazanie produktov (stránkované načítanie s cache), vyhľadávanie kategórií podľa mena s rozlíšením podľa rodičovskej kategórie, priraďovanie produktov ku kategóriám a špecifikačným atribútom.
+`CI/azure-pipelines.yml` runs on every push to `main` on a `windows-latest` agent: NuGet restore → VSBuild (Release) → VSTest, which discovers and runs the test projects.
 
-### Receipts – automatizácia skladových príjemiek z dodávateľských faktúr
+## Secrets configuration
 
-Portované zo samostatného riešenia `Gabel.PrijemkaSync`: z PDF faktúry dodávateľa sa vyťažia položky a pripraví sa **návrh** (proposal) skladovej príjemky do Pohody. Návrh sa ukladá lokálne (SQLite) a zapisuje ako Markdown náhľad na schválenie; samotný zápis do Pohody je oddelený, explicitne spúšťaný krok (dry-run → apply). Spustiteľné aplikácie sú Jobs.Receipts.Scan (návrhy) a Jobs.Receipts.Apply (zápis) – viď sekciu Jobs.
+The tracked `appsettings.json` files of `Jobs.Receipts.Scan` and `Jobs.Receipts.Apply` hold only non-secret defaults; `Pohoda:AcEcom:Username` and `Pohoda:AcEcom:Password` are deliberately empty (`""`). Both applications need them to log in to the AcEcom mServer instance (port 444).
 
-- **Receipts.Contract** – doménové modely (`ParsedInvoice`, `InvoiceLine`, `ReceiptProposal`, `ReceiptLineProposal`) a dve rozhrania pre dodávateľské pluginy: `IInvoiceParser` (PDF → `ParsedInvoice`) a `IVariantDetector` (rozpoznanie veľkostného variantu v názve produktu).
-- **Receipts.Core** – dodávateľsky nezávislá logika: `ProposalBuilder` (párovanie faktúry na existujúcu príjemku podľa výskytu čísla faktúry v texte dokladu, rozlíšenie existujúcich vs. nových skladových kariet, návrh materskej karty pre varianty), `ProposalApplier` (jediné miesto, ktoré zapisuje do Pohody – založí chýbajúce karty a vytvorí/doplní príjemku; doprava ide vždy ako vedľajšie náklady), `PreviewWriter` (Markdown náhľad) a `ReceiptsStateStore` (SQLite stav nad `Common.Data.Sqlite`: spracované súbory, audit log, cache mapovania kódov, uložené proposaly). Závisí len na `Receipts.Contract`, `Pohoda.Contract` a `Common.Data.Sqlite`.
-- **Receipts.Gabel** – prvý dodávateľský plugin: `GabelInvoiceParser` (deterministický regex parser finálnych faktúr `FT n/nnnnnn` nad `Common.Documents.PdfReader`; proforma faktúry preskakuje) a `GabelVariantDetector` (vzory `CM.120` / `135CM` / `Cm 115`, rozsahy ako `73-110CM` sa nepovažujú za variant). Ďalší dodávateľ = nový projekt `Receipts.<Dodávateľ>`, `Receipts.Core` sa nemení.
-- **Receipts.Tests** – xUnit testy vrátane pôvodných testov parsera nad reálnymi PDF vzorkami (`TestData/`), testov `ProposalBuilder`/`ProposalApplier` s ručnými fake implementáciami Pohoda služieb a testov SQLite stavu.
+`AcEcom` is the instance key: it selects the config section `Pohoda:AcEcom:*` and the keyed DI registrations. `ConfigName` and `DefaultStorageCode` in that section stay `"GoNoow"`, because those are the real mServer configuration and warehouse names inside Pohoda.
 
-#### Pred prvým ostrým `apply`
-
-Zápis do Pohody cez XML agendu (`create`/`update` príjemky, založenie skladovej karty) **zatiaľ nikdy naživo neprebehol** – ani v pôvodnom riešení. Prvé spustenie preto patrí k dozorovaným krokom:
-
-1. Spusti ho, keď je pri tom niekto, kto vidí stav v Pohode, a ideálne najprv proti testovacej účtovnej jednotke.
-2. Prvý zápis vždy ako `apply --id <id>` pre jeden konkrétny návrh, nikdy `apply --all`.
-3. Ako prvý otestuj návrh typu `AppendLines` (doplnenie existujúcej príjemky) na doklade, o ktorý nie je škoda. `UpdateAsync` posiela **kompletný zoznam riadkov** (existujúce + nové); ak by Pohoda riadky pripájala namiesto nahradenia, každý existujúci riadok by sa zduplikoval. Toto je najdôležitejšia neoverená vlastnosť celého reťazca.
-4. `UpdateAsync` zapisuje do hlavičky **dnešný dátum** – over, či to prepísalo pôvodný dátum príjemky a či to vadí.
-5. Po zápise skontroluj v Pohode zaradenie novej skladovej karty (`storage`) a jej `orderName` pri veľkostných variantoch; priradenie variantu k materskej karte treba aj tak urobiť ručne, XML agenda naň nemá pole.
-6. Over, či je `rateVAT="none"` správny token pre položky oslobodené od DPH.
-
-Body 3 až 6 sú prenesené otvorené otázky z pôvodného riešenia, nie nové riziká zavedené presunom.
-
-### Pohoda – integrácia s ERP systémom
-
-- **Pohoda.Contract** – rozhrania (`ICategoryService`, `IOrderService`, `IParameterService`, `IStockService`, `IReceiptService` (agenda príjemiek: zoznam/vytvorenie/aktualizácia), `IStockCardService` (vyhľadanie skladovej karty podľa kódu dodávateľa, hľadanie podľa časti názvu, založenie karty – prechodné rozhranie, ktoré sa pri migrácii `Pohoda.Server` na `Pohoda.MServer` zlúči do `IStockService`)), abstraktný `AbstractOrderBuilder`, modely `ExistingReceipt`, `ReceiptLineToWrite`, `StockNameMatch` a oficiálne XSD schémy mServer API (Order, Stock, Filter, ...).
-- **Pohoda.MServer** – zdieľaný nízkoúrovňový klient pre POHODA mServer (nezávislý od `Pohoda.Server`): `MServerClient` (HTTP komunikácia cez `IHttpClientFactory`, kódovanie Windows-1250, parsovanie `state`/`error` odpovede), `MServerLauncher` (spúšťanie/zastavovanie `pohoda.exe /http start|stop` priamo cez `ProcessStartInfo.ArgumentList`, bez `cmd.exe`) a `ServiceCollectionExtensions.AddPohodaMServer` na registráciu viacerých mServer inštancií súčasne cez keyed DI (konfiguračná sekcia `Pohoda:<instanceKey>:*`).
-- **Pohoda.Server** – implementácia komunikácie s lokálnym Pohoda **mServer** (vrátane spúšťania/zastavovania procesu `pohoda.exe /http start|stop` a konverzie kódovania Windows-1250 → UTF-8): `StockService`, `CategoryService`, `OrderService`, `ParameterService`, `Storages` (medzipamäť spracovaných XML odpovedí) a `Mappers` prevádzajúce XML dáta z Pohody na zdieľané DTO z `Common.Contract`. Nové služby ReceiptService a StockCardService (implementácie IReceiptService/IStockCardService) už komunikujú cez zdieľaný Pohoda.MServer.MServerClient a XML obálku Pohoda.Server.Xml.DataPackBuilder; pôvodné služby (StockService, CategoryService, …) zatiaľ ostávajú na pôvodnom MServer.cs.
-- **Pohoda.Server.Tests** – xUnit testy ReceiptService a StockCardService proti falošnému mServeru (FakeMServer) – overujú presný tvar XML požiadaviek (namespace elementov requestPrijemka/requestStock, limit/count, dvojito vnorený stockItem, prijemkaAccessoryChargesItem pre dopravu) a parsovanie odpovedí.
-
-## Build a spustenie
-
-- **Build**: otvoriť `src/eCommerce.sln` vo Visual Studio (s podporou pre .NET 10 SDK), alebo `dotnet build src/eCommerce.sln`.
-- **Spustenie**: každý z projektov `Import.Hrackys`, `Import.Wiky`, `Jobs.Expando.Orders`, `Jobs.Nop.Synch` je samostatne spustiteľná aplikácia (`dotnet run --project src/<priečinok>/<projekt>/<projekt>.csproj`), konfigurovaná cez vlastný `appsettings.json`. Spoločný orchestračný skript alebo docker-compose v repozitári nie je.
-- **CI**: `CI/azure-pipelines.yml` – beží pri push do `main` (NuGet restore → VSBuild → VSTest). Testovacie projekty (`*.Tests.csproj`) sú v riešení prítomné (viď vyššie) a CI pipeline ich detekuje a spúšťa prostredníctvom VSTest kroku.
-
-## Konfigurácia citlivých údajov
-
-appsettings.json v jednotlivých projektoch (`Import.Wiky`, `Jobs.Expando.Orders`, `Jobs.Nop.Synch`) obsahuje len netajné defaulty — hodnoty ako heslá a API kľúče sú v repozitári zámerne prázdne (`""`).
-
-**Lokálny vývoj** — hodnoty sa nastavujú cez .NET User Secrets (mimo repozitára, viazané na `<UserSecretsId>` v danom `.csproj`):
+**Local development** – set the values through .NET User Secrets (outside the repository, bound to the `<UserSecretsId>` of each `.csproj`), once per application:
 
 ```bash
-dotnet user-secrets set "Pohoda:password" "<hodnota>" --project src/Jobs/Jobs.Nop.Synch/Jobs.Nop.Synch.csproj
+dotnet user-secrets set "Pohoda:AcEcom:Username" "<value>" --project src/Jobs/Jobs.Receipts.Scan/Jobs.Receipts.Scan.csproj
+dotnet user-secrets set "Pohoda:AcEcom:Password" "<value>" --project src/Jobs/Jobs.Receipts.Scan/Jobs.Receipts.Scan.csproj
+dotnet user-secrets set "Pohoda:AcEcom:Username" "<value>" --project src/Jobs/Jobs.Receipts.Apply/Jobs.Receipts.Apply.csproj
+dotnet user-secrets set "Pohoda:AcEcom:Password" "<value>" --project src/Jobs/Jobs.Receipts.Apply/Jobs.Receipts.Apply.csproj
 ```
 
-Vyžadované kľúče, ktoré kód skutočne číta: `Pohoda:username` a `Pohoda:password` (používajú všetky tri aplikácie — `Import.Wiky`, `Jobs.Expando.Orders`, `Jobs.Nop.Synch`). `Jobs.Nop.Synch` naviac vyžaduje `NopCommerce:Username` a `NopCommerce:Password` (cez `NopCommerceSettings`).
-`ExpandoKey`, `Email:Password` a `Packeta:ApiPassword` sú v konfigurácii prítomné pre budúcu kompatibilitu, no aktuálne ich žiadny kód nečíta — ich nastavenie je dnes voliteľné, aj tak sa však odporúča držať skutočné hodnoty mimo trackovaného appsettings.json. Jobs.Receipts.Scan a Jobs.Receipts.Apply čítajú Pohoda:GoNoow:Username a Pohoda:GoNoow:Password (v produkcii Pohoda__GoNoow__Username a Pohoda__GoNoow__Password) – ide o inú mServer inštanciu (port 444) než tú, ktorú používajú ostatné joby (Pohoda:username/password, port 5336).
+User Secrets load only in the `Development` environment, which is why each project's `Properties/launchSettings.json` sets `DOTNET_ENVIRONMENT=Development`. Running the built `.exe` directly, or `dotnet run --no-launch-profile`, bypasses that variable and User Secrets are not loaded.
 
-**Produkcia** — rovnaké kľúče sa nastavia ako environment variables na cieľovom stroji, s dvojitou podčiarkovníkovou notáciou pre vnorené sekcie (napr. `Pohoda__password`, `NopCommerce__Password`). `Host.CreateDefaultBuilder` ich automaticky prečíta a prebije nimi appsettings.json.
+**Production** – set the same keys as environment variables on the target machine, with double underscores for nested sections: `Pohoda__AcEcom__Username` and `Pohoda__AcEcom__Password`. The .NET host reads them automatically and they override `appsettings.json`.
 
-User Secrets sa načítajú iba v prostredí `Development` — preto nové `launchSettings.json` súbory nastavujú `DOTNET_ENVIRONMENT=Development`. Spustenie skompilovaného `.exe` priamo, alebo `dotnet run --no-launch-profile`, tento environment variable obíde a User Secrets sa nenačítajú.
+Earlier versions used the instance key `GoNoow`. If User Secrets or environment variables are still set under `Pohoda:GoNoow:*` / `Pohoda__GoNoow__*`, set them again under the new names.
 
-Nikdy nezapisujte skutočné hodnoty do appsettings.json ani do žiadneho súboru trackovaného gitom.
+Never write real values into `appsettings.json` or any other file tracked by git.
