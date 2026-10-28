@@ -21,18 +21,18 @@ public class ServiceCollectionExtensionsTests
             ["Pohoda:StwTest:DefaultStorageCode"] = "AzetCool",
             ["Pohoda:StwTest:DefaultTypePriceCode"] = "0",
 
-            ["Pohoda:GoNoow:BaseUrl"] = "http://127.0.0.1",
-            ["Pohoda:GoNoow:Port"] = "444",
-            ["Pohoda:GoNoow:ConfigName"] = "GoNoow",
-            ["Pohoda:GoNoow:Username"] = "gonoow-user",
-            ["Pohoda:GoNoow:Password"] = "gonoow-pass",
-            ["Pohoda:GoNoow:Ico"] = "53870441",
-            ["Pohoda:GoNoow:DefaultStorageCode"] = "GoNoow",
-            ["Pohoda:GoNoow:DefaultTypePriceCode"] = "0"
+            ["Pohoda:AcEcom:BaseUrl"] = "http://127.0.0.1",
+            ["Pohoda:AcEcom:Port"] = "444",
+            ["Pohoda:AcEcom:ConfigName"] = "GoNoow",
+            ["Pohoda:AcEcom:Username"] = "acecom-user",
+            ["Pohoda:AcEcom:Password"] = "acecom-pass",
+            ["Pohoda:AcEcom:Ico"] = "53870441",
+            ["Pohoda:AcEcom:DefaultStorageCode"] = "GoNoow",
+            ["Pohoda:AcEcom:DefaultTypePriceCode"] = "0"
         });
 
         builder.Services.AddPohodaMServer(builder.Configuration, "StwTest");
-        builder.Services.AddPohodaMServer(builder.Configuration, "GoNoow");
+        builder.Services.AddPohodaMServer(builder.Configuration, "AcEcom");
 
         return builder.Build();
     }
@@ -43,11 +43,11 @@ public class ServiceCollectionExtensionsTests
         using var host = BuildHost();
 
         var stwTest = host.Services.GetKeyedService<MServerClient>("StwTest");
-        var goNoow = host.Services.GetKeyedService<MServerClient>("GoNoow");
+        var acEcom = host.Services.GetKeyedService<MServerClient>("AcEcom");
 
         Assert.NotNull(stwTest);
-        Assert.NotNull(goNoow);
-        Assert.NotSame(stwTest, goNoow);
+        Assert.NotNull(acEcom);
+        Assert.NotSame(stwTest, acEcom);
     }
 
     [Fact]
@@ -56,11 +56,11 @@ public class ServiceCollectionExtensionsTests
         using var host = BuildHost();
 
         var stwTest = host.Services.GetKeyedService<MServerLauncher>("StwTest");
-        var goNoow = host.Services.GetKeyedService<MServerLauncher>("GoNoow");
+        var acEcom = host.Services.GetKeyedService<MServerLauncher>("AcEcom");
 
         Assert.NotNull(stwTest);
-        Assert.NotNull(goNoow);
-        Assert.NotSame(stwTest, goNoow);
+        Assert.NotNull(acEcom);
+        Assert.NotSame(stwTest, acEcom);
     }
 
     [Fact]
@@ -70,10 +70,10 @@ public class ServiceCollectionExtensionsTests
         var factory = host.Services.GetRequiredService<IHttpClientFactory>();
 
         var stwTestClient = factory.CreateClient("StwTest");
-        var goNoowClient = factory.CreateClient("GoNoow");
+        var acEcomClient = factory.CreateClient("AcEcom");
 
         Assert.Equal(new Uri("http://127.0.0.1:5336/"), stwTestClient.BaseAddress);
-        Assert.Equal(new Uri("http://127.0.0.1:444/"), goNoowClient.BaseAddress);
+        Assert.Equal(new Uri("http://127.0.0.1:444/"), acEcomClient.BaseAddress);
     }
 
     [Fact]
@@ -82,11 +82,11 @@ public class ServiceCollectionExtensionsTests
         using var host = BuildHost();
         var factory = host.Services.GetRequiredService<IHttpClientFactory>();
 
-        var client = factory.CreateClient("GoNoow");
+        var client = factory.CreateClient("AcEcom");
 
         Assert.Null(client.DefaultRequestHeaders.Authorization);
         Assert.True(client.DefaultRequestHeaders.Contains("STW-Authorization"));
-        var expected = "Basic " + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("gonoow-user:gonoow-pass"));
+        var expected = "Basic " + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("acecom-user:acecom-pass"));
         Assert.Equal(expected, client.DefaultRequestHeaders.GetValues("STW-Authorization").Single());
     }
 }

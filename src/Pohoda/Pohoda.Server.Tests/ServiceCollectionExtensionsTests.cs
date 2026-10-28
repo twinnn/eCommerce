@@ -23,20 +23,20 @@ public class ServiceCollectionExtensionsTests
             ["Pohoda:StwTest:DefaultStorageCode"] = "AzetCool",
             ["Pohoda:StwTest:DefaultTypePriceCode"] = "0",
 
-            ["Pohoda:GoNoow:BaseUrl"] = "http://127.0.0.1",
-            ["Pohoda:GoNoow:Port"] = "444",
-            ["Pohoda:GoNoow:ConfigName"] = "GoNoow",
-            ["Pohoda:GoNoow:Username"] = "gonoow-user",
-            ["Pohoda:GoNoow:Password"] = "gonoow-pass",
-            ["Pohoda:GoNoow:Ico"] = "53870441",
-            ["Pohoda:GoNoow:DefaultStorageCode"] = "GoNoow",
-            ["Pohoda:GoNoow:DefaultTypePriceCode"] = "GABEL"
+            ["Pohoda:AcEcom:BaseUrl"] = "http://127.0.0.1",
+            ["Pohoda:AcEcom:Port"] = "444",
+            ["Pohoda:AcEcom:ConfigName"] = "GoNoow",
+            ["Pohoda:AcEcom:Username"] = "acecom-user",
+            ["Pohoda:AcEcom:Password"] = "acecom-pass",
+            ["Pohoda:AcEcom:Ico"] = "53870441",
+            ["Pohoda:AcEcom:DefaultStorageCode"] = "GoNoow",
+            ["Pohoda:AcEcom:DefaultTypePriceCode"] = "GABEL"
         });
 
         builder.Services.AddPohodaMServer(builder.Configuration, "StwTest");
-        builder.Services.AddPohodaMServer(builder.Configuration, "GoNoow");
+        builder.Services.AddPohodaMServer(builder.Configuration, "AcEcom");
         builder.Services.AddPohodaAgendaServices("StwTest");
-        builder.Services.AddPohodaAgendaServices("GoNoow");
+        builder.Services.AddPohodaAgendaServices("AcEcom");
 
         return builder.Build();
     }
@@ -47,11 +47,11 @@ public class ServiceCollectionExtensionsTests
         using var host = BuildHost();
 
         var stwTest = host.Services.GetKeyedService<IReceiptService>("StwTest");
-        var goNoow = host.Services.GetKeyedService<IReceiptService>("GoNoow");
+        var acEcom = host.Services.GetKeyedService<IReceiptService>("AcEcom");
 
         Assert.IsType<ReceiptService>(stwTest);
-        Assert.IsType<ReceiptService>(goNoow);
-        Assert.NotSame(stwTest, goNoow);
+        Assert.IsType<ReceiptService>(acEcom);
+        Assert.NotSame(stwTest, acEcom);
     }
 
     [Fact]
@@ -60,11 +60,11 @@ public class ServiceCollectionExtensionsTests
         using var host = BuildHost();
 
         var stwTest = host.Services.GetKeyedService<IStockCardService>("StwTest");
-        var goNoow = host.Services.GetKeyedService<IStockCardService>("GoNoow");
+        var acEcom = host.Services.GetKeyedService<IStockCardService>("AcEcom");
 
         Assert.IsType<StockCardService>(stwTest);
-        Assert.IsType<StockCardService>(goNoow);
-        Assert.NotSame(stwTest, goNoow);
+        Assert.IsType<StockCardService>(acEcom);
+        Assert.NotSame(stwTest, acEcom);
     }
 
     [Fact]
@@ -83,15 +83,15 @@ public class ServiceCollectionExtensionsTests
 
         // The service is constructed from the keyed MServerClient, so resolving the same key twice
         // must hand back the one singleton, and the two keys must never share it.
-        var goNoowFirst = host.Services.GetRequiredKeyedService<IReceiptService>("GoNoow");
-        var goNoowSecond = host.Services.GetRequiredKeyedService<IReceiptService>("GoNoow");
+        var acEcomFirst = host.Services.GetRequiredKeyedService<IReceiptService>("AcEcom");
+        var acEcomSecond = host.Services.GetRequiredKeyedService<IReceiptService>("AcEcom");
         var stwTest = host.Services.GetRequiredKeyedService<IReceiptService>("StwTest");
 
-        Assert.Same(goNoowFirst, goNoowSecond);
-        Assert.NotSame(goNoowFirst, stwTest);
+        Assert.Same(acEcomFirst, acEcomSecond);
+        Assert.NotSame(acEcomFirst, stwTest);
 
-        var goNoowClient = host.Services.GetRequiredKeyedService<MServerClient>("GoNoow");
+        var acEcomClient = host.Services.GetRequiredKeyedService<MServerClient>("AcEcom");
         var stwTestClient = host.Services.GetRequiredKeyedService<MServerClient>("StwTest");
-        Assert.NotSame(goNoowClient, stwTestClient);
+        Assert.NotSame(acEcomClient, stwTestClient);
     }
 }

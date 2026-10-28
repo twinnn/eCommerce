@@ -16,8 +16,8 @@ public static class ServiceCollectionExtensions
     /// <c>AddPohodaMServer(configuration, instanceKey)</c> for the same key first — this method resolves
     /// that instance's <see cref="MServerClient"/> and its named <see cref="MServerConfiguration"/>.
     /// Consumers resolve the instance they need with
-    /// <c>GetRequiredKeyedService&lt;IReceiptService&gt;("GoNoow")</c> or the matching
-    /// <c>[FromKeyedServices("GoNoow")]</c> constructor parameter.
+    /// <c>GetRequiredKeyedService&lt;IReceiptService&gt;("AcEcom")</c> or the matching
+    /// <c>[FromKeyedServices("AcEcom")]</c> constructor parameter.
     /// </summary>
     public static IServiceCollection AddPohodaAgendaServices(this IServiceCollection services, string instanceKey)
     {
